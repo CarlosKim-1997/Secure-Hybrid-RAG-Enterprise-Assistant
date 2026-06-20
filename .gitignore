@@ -26,8 +26,11 @@ wheels/
 .installed.cfg
 *.egg
 
-# Vector DB (regeneratable)
-data/vectordb/
+# Vector DB — prebuilt index for Streamlit Cloud (run init_vectordb.py locally to regenerate)
+data/vectordb/*
+!data/vectordb/document_catalog.json
+!data/vectordb/documents.pkl
+!data/vectordb/index.faiss
 
 # IDE
 .vscode/

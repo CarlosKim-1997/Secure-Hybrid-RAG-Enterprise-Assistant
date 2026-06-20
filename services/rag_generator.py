@@ -19,6 +19,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 LOCAL_LLM_AVAILABLE = False
+OPENAI_AVAILABLE = False
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    pass
 try:
     from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
     import torch
@@ -35,6 +41,16 @@ def check_ollama_available() -> bool:
         return response.status_code == 200
     except Exception:
         return False
+
+
+def is_web_demo_mode() -> bool:
+    """Streamlit Cloud 등 웹 데모 전용 모드 (Step 3를 클라우드 LLM으로 처리)."""
+    return os.getenv("WEB_DEMO_MODE", "false").lower() == "true"
+
+
+def _openai_api_key_configured() -> bool:
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    return bool(api_key) and api_key != "your_openai_api_key_here"
 
 
 def load_prompt_template() -> str:
@@ -169,6 +185,7 @@ def generate_answer(
 
     ollama_enabled = os.getenv("OLLAMA_ENABLED", "false").lower() == "true"
     ollama_available = check_ollama_available() if ollama_enabled else False
+    web_demo = is_web_demo_mode()
 
     start = time.perf_counter()
 
@@ -176,6 +193,13 @@ def generate_answer(
         model = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
         answer = _generate_with_ollama(question, retrieval_plan, retrieved_docs)
         text = f"🤖 **[Ollama - {model}]**\n\n{answer}"
+    elif web_demo and OPENAI_AVAILABLE and _openai_api_key_configured():
+        model = os.getenv("WEB_DEMO_OPENAI_MODEL", "gpt-4o-mini")
+        answer = _generate_with_openai_web_demo(question, retrieval_plan, retrieved_docs)
+        text = (
+            f"☁️ **[웹 데모 — 클라우드 LLM ({model})]**\n\n{answer}\n\n"
+            "> 프로덕션 아키텍처에서는 Step 3 답변 생성은 로컬 Ollama에서 처리합니다."
+        )
     elif use_local_llm and LOCAL_LLM_AVAILABLE and os.getenv("LOCAL_LLM_ENABLED", "false").lower() == "true":
         answer = _generate_with_local_llm(question, retrieval_plan, retrieved_docs)
         text = f"🤖 **[Local LLM]**\n\n{answer}"
@@ -185,6 +209,67 @@ def generate_answer(
 
     inference_seconds = time.perf_counter() - start
     return {"answer": text, "inference_seconds": inference_seconds}
+
+
+def _build_rag_prompt(
+    question: str,
+    retrieval_plan: dict[str, Any],
+    retrieved_docs: list[dict],
+) -> str:
+    prompt_template = load_prompt_template()
+    prompt = prompt_template.replace("{question}", question)
+    prompt = prompt.replace("{user_intent}", retrieval_plan.get("user_intent", ""))
+    prompt = prompt.replace("{query_complexity}", retrieval_plan.get("query_complexity", "simple"))
+    prompt = prompt.replace("{focus_points}", ", ".join(retrieval_plan.get("focus_points", [])))
+    prompt = prompt.replace(
+        "{special_conditions}",
+        ", ".join(retrieval_plan.get("special_conditions", [])) or "없음",
+    )
+
+    amount = retrieval_plan.get("amount_involved")
+    amount_str = f"{amount:,}원" if amount else "해당 없음"
+    prompt = prompt.replace("{amount_involved}", amount_str)
+    prompt = prompt.replace("{retrieved_documents}", format_retrieved_documents(retrieved_docs))
+    prompt = prompt.replace("{allowed_doc_ids}", get_allowed_doc_ids(retrieved_docs))
+    prompt = prompt.replace("{answer_focus}", get_answer_focus(retrieval_plan, question))
+    return prompt
+
+
+def _generate_with_openai_web_demo(
+    question: str,
+    retrieval_plan: dict[str, Any],
+    retrieved_docs: list[dict],
+) -> str:
+    """
+    웹 데모 전용: 검색된 문서를 OpenAI로 전송해 답변을 생성합니다.
+
+    프로덕션 하이브리드 아키텍처와 달리 Step 3만 클라우드 LLM을 사용합니다.
+    """
+    model = os.getenv("WEB_DEMO_OPENAI_MODEL", "gpt-4o-mini")
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    prompt = _build_rag_prompt(question, retrieval_plan, retrieved_docs)
+
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "당신은 금융사 내규 검색 어시스턴트입니다. "
+                        "제공된 문서만 근거로 답변하고, 문서에 없는 내용은 추측하지 마세요."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=float(os.getenv("WEB_DEMO_OPENAI_TEMPERATURE", "0.25")),
+            max_tokens=int(os.getenv("WEB_DEMO_OPENAI_MAX_TOKENS", "1200")),
+        )
+        content = response.choices[0].message.content
+        return content.strip() if content else "답변 생성에 실패했습니다."
+    except Exception as e:
+        print(f"Web demo OpenAI error: {e}")
+        return _generate_simulated_answer(question, retrieval_plan, retrieved_docs)
 
 
 def _generate_with_ollama(
@@ -198,21 +283,9 @@ def _generate_with_ollama(
     num_predict = int(os.getenv("OLLAMA_NUM_PREDICT", "1024"))
     
     print(f"[RAG] Using Ollama model: {model}, num_predict: {num_predict}")
-    
-    prompt_template = load_prompt_template()
-    prompt = prompt_template.replace("{question}", question)
-    prompt = prompt.replace("{user_intent}", retrieval_plan.get("user_intent", ""))
-    prompt = prompt.replace("{query_complexity}", retrieval_plan.get("query_complexity", "simple"))
-    prompt = prompt.replace("{focus_points}", ", ".join(retrieval_plan.get("focus_points", [])))
-    prompt = prompt.replace("{special_conditions}", ", ".join(retrieval_plan.get("special_conditions", [])) or "없음")
-    
-    amount = retrieval_plan.get("amount_involved")
-    amount_str = f"{amount:,}원" if amount else "해당 없음"
-    prompt = prompt.replace("{amount_involved}", amount_str)
-    prompt = prompt.replace("{retrieved_documents}", format_retrieved_documents(retrieved_docs))
-    prompt = prompt.replace("{allowed_doc_ids}", get_allowed_doc_ids(retrieved_docs))
-    prompt = prompt.replace("{answer_focus}", get_answer_focus(retrieval_plan, question))
-    
+
+    prompt = _build_rag_prompt(question, retrieval_plan, retrieved_docs)
+
     temperature = float(os.getenv("OLLAMA_TEMPERATURE", "0.25"))
     try:
         response = httpx.post(
@@ -262,20 +335,8 @@ def _generate_with_local_llm(
             temperature=0.7,
         )
         
-        prompt_template = load_prompt_template()
-        prompt = prompt_template.replace("{question}", question)
-        prompt = prompt.replace("{user_intent}", retrieval_plan.get("user_intent", ""))
-        prompt = prompt.replace("{query_complexity}", retrieval_plan.get("query_complexity", "simple"))
-        prompt = prompt.replace("{focus_points}", ", ".join(retrieval_plan.get("focus_points", [])))
-        prompt = prompt.replace("{special_conditions}", ", ".join(retrieval_plan.get("special_conditions", [])) or "없음")
-        
-        amount = retrieval_plan.get("amount_involved")
-        amount_str = f"{amount:,}원" if amount else "해당 없음"
-        prompt = prompt.replace("{amount_involved}", amount_str)
-        prompt = prompt.replace("{retrieved_documents}", format_retrieved_documents(retrieved_docs))
-        prompt = prompt.replace("{allowed_doc_ids}", get_allowed_doc_ids(retrieved_docs))
-        prompt = prompt.replace("{answer_focus}", get_answer_focus(retrieval_plan, question))
-        
+        prompt = _build_rag_prompt(question, retrieval_plan, retrieved_docs)
+
         result = generator(prompt)
         return result[0]["generated_text"]
         

@@ -1,0 +1,140 @@
+[
+  {
+    "doc_id": "COM-POL-001",
+    "doc_name": "준법·윤리정책",
+    "category": "COMPLIANCE",
+    "doc_level": "POLICY"
+  },
+  {
+    "doc_id": "FIN-POL-001",
+    "doc_name": "재무관리정책",
+    "category": "FINANCE",
+    "doc_level": "POLICY"
+  },
+  {
+    "doc_id": "HR-POL-001",
+    "doc_name": "인사관리정책",
+    "category": "HR",
+    "doc_level": "POLICY"
+  },
+  {
+    "doc_id": "IT-POL-001",
+    "doc_name": "IT관리정책",
+    "category": "IT_OPS",
+    "doc_level": "POLICY"
+  },
+  {
+    "doc_id": "SEC-POL-001",
+    "doc_name": "정보보안정책",
+    "category": "SECURITY",
+    "doc_level": "POLICY"
+  },
+  {
+    "doc_id": "SEC-REG-001",
+    "doc_name": "접근통제규정",
+    "category": "SECURITY",
+    "doc_level": "REGULATION"
+  },
+  {
+    "doc_id": "COM-REG-003",
+    "doc_name": "자금세탁방지규정",
+    "category": "COMPLIANCE",
+    "doc_level": "REGULATION"
+  },
+  {
+    "doc_id": "IT-REG-002",
+    "doc_name": "변경관리규정",
+    "category": "IT_OPS",
+    "doc_level": "REGULATION"
+  },
+  {
+    "doc_id": "SEC-REG-002",
+    "doc_name": "정보분류및취급규정",
+    "category": "SECURITY",
+    "doc_level": "REGULATION"
+  },
+  {
+    "doc_id": "FIN-REG-004",
+    "doc_name": "접대비관리규정",
+    "category": "FINANCE",
+    "doc_level": "REGULATION"
+  },
+  {
+    "doc_id": "FIN-REG-001",
+    "doc_name": "경비관리규정",
+    "category": "FINANCE",
+    "doc_level": "REGULATION"
+  },
+  {
+    "doc_id": "SEC-REG-003",
+    "doc_name": "보안사고대응규정",
+    "category": "SECURITY",
+    "doc_level": "REGULATION"
+  },
+  {
+    "doc_id": "HR-REG-003",
+    "doc_name": "휴가규정",
+    "category": "HR",
+    "doc_level": "REGULATION"
+  },
+  {
+    "doc_id": "FIN-REG-002",
+    "doc_name": "출장관리규정",
+    "category": "FINANCE",
+    "doc_level": "REGULATION"
+  },
+  {
+    "doc_id": "VND-REG-001",
+    "doc_name": "외주관리규정",
+    "category": "VENDOR",
+    "doc_level": "REGULATION"
+  },
+  {
+    "doc_id": "FIN-GUI-002",
+    "doc_name": "법인카드사용지침",
+    "category": "FINANCE",
+    "doc_level": "GUIDELINE"
+  },
+  {
+    "doc_id": "FIN-GUI-001",
+    "doc_name": "경비정산지침",
+    "category": "FINANCE",
+    "doc_level": "GUIDELINE"
+  },
+  {
+    "doc_id": "FIN-GUI-004",
+    "doc_name": "해외출장지침",
+    "category": "FINANCE",
+    "doc_level": "GUIDELINE"
+  },
+  {
+    "doc_id": "HR-GUI-010",
+    "doc_name": "재택근무지침",
+    "category": "HR",
+    "doc_level": "GUIDELINE"
+  },
+  {
+    "doc_id": "SEC-MAN-002",
+    "doc_name": "침해사고대응매뉴얼",
+    "category": "SECURITY",
+    "doc_level": "MANUAL"
+  },
+  {
+    "doc_id": "IT-MAN-001",
+    "doc_name": "IT헬프데스크이용매뉴얼",
+    "category": "IT_OPS",
+    "doc_level": "MANUAL"
+  },
+  {
+    "doc_id": "HR-MAN-001",
+    "doc_name": "신입사원입사안내매뉴얼",
+    "category": "HR",
+    "doc_level": "MANUAL"
+  },
+  {
+    "doc_id": "ADM-CAT-001",
+    "doc_name": "사내양식카탈로그",
+    "category": "ADMIN",
+    "doc_level": "FORM"
+  }
+]
